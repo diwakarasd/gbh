@@ -1,5 +1,4 @@
 
-```js
 // gesture.js
 // ======================================================================
 //   Hand Gesture Controller for Gargantua Black Hole Engine
