@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Gargantua — Realistic Black Hole</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      margin:0; padding:0; overflow:hidden;
+      background:#000; height:100%;
+      font-family: system-ui, sans-serif;
+    }
+    #ui {
+      position: fixed;
+      left: 12px; top: 12px;
+      padding: 12px;
+      background: rgba(255,255,255,0.05);
+      color:#fff;
+      border-radius:10px;
+      z-index:20;
+      backdrop-filter: blur(6px);
+      width:260px;
+    }
+    #ui label { display:block; font-size:13px; margin-top:10px; color:#ccc; }
+    #ui input, #ui select { width:100%; margin-top:4px; }
+  </style>
+</head>
+
+<body>
+
+<div id="ui">
+  <h3 style="margin:0 0 8px 0;">Gargantua Black Hole</h3>
+
+  <label>Realism Mode</label>
+  <select id="mode">
+    <option value="mobile">Mobile Optimized</option>
+    <option value="max">Max Realism</option>
+  </select>
+
+  <label>Disk Intensity</label>
+  <input id="diskIntensity" type="range" min="0.1" max="2" value="1" step="0.01">
+
+  <label>Disk Spin</label>
+  <input id="diskSpin" type="range" min="0" max="1" value="0.25" step="0.01">
+
+  <label>Bloom Strength</label>
+  <input id="bloomStrength" type="range" min="0" max="3" value="1.4" step="0.05">
+
+  <label>Bloom Radius</label>
+  <input id="bloomRadius" type="range" min="0" max="1" value="0.45" step="0.01">
+
+  <label>Bloom Threshold</label>
+  <input id="bloomThreshold" type="range" min="0" max="1" value="0.22" step="0.01">
+</div>
+
+<!-- Hidden cam feed for hand gestures -->
+<video id="gestureCam" autoplay playsinline style="display:none"></video>
+
+<!-- Main engine -->
+<script type="module">
+  import { startBlackHole } from "./blackhole.js";
+  startBlackHole();
+</script>
+
+<!-- MediaPipe Hands -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+</body>
+</html>
