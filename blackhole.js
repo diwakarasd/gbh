@@ -1,5 +1,5 @@
 
-```js
+
 // blackhole.js
 // ====================================================================
 //   MAIN ENGINE — GARGANTUA REALISTIC BLACK HOLE
