@@ -167,6 +167,8 @@ export function startBlackHole() {
   // ------------------------------------------------------------------
   const composer = new EffectComposer(renderer);
   composer.addPass(lensPass);
+  composer.addPass(new RenderPass(scene, camera));
+
 
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(innerWidth, innerHeight),
