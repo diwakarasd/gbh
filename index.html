@@ -24,6 +24,23 @@
     #ui label { display:block; font-size:13px; margin-top:10px; color:#ccc; }
     #ui input, #ui select { width:100%; margin-top:4px; }
   </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+      "three/examples/jsm/controls/OrbitControls.js":
+        "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/controls/OrbitControls.js",
+      "three/examples/jsm/postprocessing/EffectComposer.js":
+        "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/postprocessing/EffectComposer.js",
+      "three/examples/jsm/postprocessing/RenderPass.js":
+        "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/postprocessing/RenderPass.js",
+      "three/examples/jsm/postprocessing/ShaderPass.js":
+        "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/postprocessing/ShaderPass.js",
+      "three/examples/jsm/postprocessing/UnrealBloomPass.js":
+        "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/postprocessing/UnrealBloomPass.js"
+    }
+  }
+  </script>
 </head>
 
 <body>
@@ -57,13 +74,7 @@
 <video id="gestureCam" autoplay playsinline style="display:none"></video>
 
 <!-- Main engine -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js"
-    }
-  }
-  </script>
+
 
 <script type="module">
   import { startBlackHole } from "./blackhole.js";
