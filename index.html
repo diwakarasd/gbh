@@ -57,6 +57,14 @@
 <video id="gestureCam" autoplay playsinline style="display:none"></video>
 
 <!-- Main engine -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js"
+    }
+  }
+  </script>
+
 <script type="module">
   import { startBlackHole } from "./blackhole.js";
   startBlackHole();
