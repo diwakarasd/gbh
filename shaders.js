@@ -28,7 +28,10 @@ export const LensingShader = {
     vec2 lens(vec2 uv){
       vec2 c = uv - 0.5;
       float r = length(c);
-      float bend = uStrength * 0.25 / (r*r + 0.02);
+      
+      float bend = uStrength * 0.12 / (r*r + 0.08);
+      bend *= smoothstep(0.0, 0.35, r);
+
       return c * (1.0 - bend) + 0.5;
     }
 
