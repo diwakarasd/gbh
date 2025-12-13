@@ -232,11 +232,14 @@ export function startBlackHole() {
     cfg.bloomThreshold
   );
 
-  // Dummy pass (not used but required for composer init)
-  composer.addPass(new RenderPass(new THREE.Scene(), camera));
+  const composer = new EffectComposer(renderer);
 
-  composer.addPass(lensPass);
-  composer.addPass(bloom);
+// Step 1: lens pass
+composer.addPass(lensPass);
+
+// Step 2: bloom
+composer.addPass(bloom);
+
 
 
   // ====================================================================
@@ -278,54 +281,56 @@ export function startBlackHole() {
   let last = performance.now();
 
   function animate(now) {
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
+  
+  const dt = (now - last) * 0.001;
+  last = now;
 
-    const dt = (now - last) * 0.001;
-    last = now;
+  // --- 1. Render stars to RT ---
+  renderer.setRenderTarget(starRT);
+  renderer.render(starScene, starCam);
 
-    // -------- Render stars --------
-    renderer.setRenderTarget(starRT);
-    renderer.render(starScene, starCam);
+  // --- 2. Render black hole scene to RT ---
+  renderer.setRenderTarget(sceneRT);
+  renderer.render(scene, camera);
 
-    // -------- Render black hole scene --------
-    renderer.setRenderTarget(sceneRT);
-    renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
 
-    renderer.setRenderTarget(null);
+  // --- 3. Feed both textures to lens shader ---
+  lensMat.uniforms.tStars.value = starRT.texture;
+  lensMat.uniforms.tScene.value = sceneRT.texture;
+  lensMat.uniforms.uTime.value = now * 0.001;
 
-    // -------- LENSING INPUTS --------
-    lensMat.uniforms.tStars.value = starRT.texture;
-    lensMat.uniforms.tScene.value = sceneRT.texture;
-    lensMat.uniforms.uTime.value = now * 0.001;
+  // Disk updates
+  disk.rotation.z += parseFloat(diskSpin.value) * dt;
+  diskMat.uniforms.uIntensity.value = parseFloat(diskIntensity.value);
+  diskMat.uniforms.uTime.value += dt;
 
-    // -------- Disk --------
-    disk.rotation.z += parseFloat(diskSpin.value) * dt;
-    diskMat.uniforms.uIntensity.value = parseFloat(diskIntensity.value);
-    diskMat.uniforms.uTime.value += dt;
+  // Jets
+  jets.children.forEach(j => {
+    j.material.uniforms.uTime.value = now * 0.002;
+  });
 
-    // -------- Jets --------
-    jets.children.forEach(j => {
-      j.material.uniforms.uTime.value = now * 0.002;
-    });
+  // Fog
+  fogMat.uniforms.uTime.value = now * 0.001;
 
-    // -------- Fog --------
-    fogMat.uniforms.uTime.value = now * 0.001;
+  // Gesture transforms
+  Gesture.updateSmooth();
+  BHroot.scale.setScalar(Gesture.smoothScale);
+  BHroot.rotation.x += (Gesture.smoothX - BHroot.rotation.x) * 0.1;
+  BHroot.rotation.y += (Gesture.smoothY - BHroot.rotation.y) * 0.1;
 
-    // -------- Gestures --------
-    Gesture.updateSmooth();
-    BHroot.scale.setScalar(Gesture.smoothScale);
-    BHroot.rotation.x += (Gesture.smoothX - BHroot.rotation.x) * 0.1;
-    BHroot.rotation.y += (Gesture.smoothY - BHroot.rotation.y) * 0.1;
+  // Bloom
+  bloom.strength = parseFloat(bloomStrength.value);
+  bloom.radius = parseFloat(bloomRadius.value);
+  bloom.threshold = parseFloat(bloomThreshold.value);
 
-    // -------- Bloom --------
-    bloom.strength = parseFloat(bloomStrength.value);
-    bloom.radius = parseFloat(bloomRadius.value);
-    bloom.threshold = parseFloat(bloomThreshold.value);
+  controls.update();
 
-    controls.update();
+  // --- 4. FINAL render through composer ---
+  composer.render();
+}
 
-    composer.render();
-  }
 
   animate(performance.now());
 }
