@@ -255,52 +255,16 @@ export function startBlackHole() {
 
   function animate(now) {
     requestAnimationFrame(animate);
-    const dt = (now - last) * 0.001;
-    last = now;
 
-    // -------- Render starfield into starRT --------
-    renderer.setRenderTarget(starRT);
-    renderer.render(starScene, starCam);
+  const dt = (now - last) * 0.001;
+  last = now;
 
-    // -------- Render black hole scene into sceneRT --------
-    renderer.setRenderTarget(sceneRT);
-    renderer.render(scene, camera);
-
-    renderer.setRenderTarget(null);
-
-    // -------- Lens shader input --------
-    lensMat.uniforms.tStars.value = starRT.texture;
-    lensMat.uniforms.tScene.value = sceneRT.texture;
-    lensMat.uniforms.uTime.value = now * 0.001;
-
-    // -------- Update disk --------
-    disk.rotation.z += parseFloat(diskSpin.value) * dt;
-    diskMat.uniforms.uIntensity.value = parseFloat(diskIntensity.value);
-    diskMat.uniforms.uTime.value += dt;
-
-    // -------- Update jets --------
-    jets.children.forEach(j =>
-      j.material.uniforms.uTime.value = now * 0.002
-    );
-
-    // -------- Update fog --------
-    fogMat.uniforms.uTime.value = now * 0.001;
-
-    // -------- Gesture input --------
-    Gesture.updateSmooth();
-    BHroot.scale.setScalar(Gesture.smoothScale);
-    BHroot.rotation.x += (Gesture.smoothX - BHroot.rotation.x) * 0.1;
-    BHroot.rotation.y += (Gesture.smoothY - BHroot.rotation.y) * 0.1;
-
-    // -------- Update bloom --------
-    bloom.strength = parseFloat(bloomStrength.value);
-    bloom.radius = parseFloat(bloomRadius.value);
-    bloom.threshold = parseFloat(bloomThreshold.value);
-
-    controls.update();
-
-    // -------- Final render --------
-    composer.render();
+  // ----------- DEBUG OUTPUT MODE 1 -----------
+  // Show ONLY the raw black hole scene WITHOUT lensing.
+  // This will reveal whether the BH actually renders.
+  renderer.setRenderTarget(null);
+  renderer.render(scene, camera);
+  return; 
   }
 
   animate(performance.now());
