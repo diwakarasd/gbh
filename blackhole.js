@@ -218,6 +218,14 @@ export function startBlackHole() {
   // POST PROCESSING (Bloom)
   // ====================================================================
   const composer = new EffectComposer(renderer);
+
+  // Bloom must be created BEFORE adding it to composer
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight),
+  cfg.bloomStrength,
+  cfg.bloomRadius,
+  cfg.bloomThreshold
+);
   // STEP 1: render the real 3D black hole scene
 composer.addPass(new RenderPass(scene, camera));
 
@@ -228,13 +236,7 @@ composer.addPass(lensPass);
 // STEP 3: bloom
 composer.addPass(bloom);
 
-  const bloom = new UnrealBloomPass(
-    new THREE.Vector2(innerWidth, innerHeight),
-    cfg.bloomStrength,
-    cfg.bloomRadius,
-    cfg.bloomThreshold
-  );
-  composer.addPass(bloom);
+  
 
 
   // ====================================================================
