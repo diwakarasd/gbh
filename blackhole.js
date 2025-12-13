@@ -218,7 +218,15 @@ export function startBlackHole() {
   // POST PROCESSING (Bloom)
   // ====================================================================
   const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(lensScene, camera));
+  // STEP 1: render the real 3D black hole scene
+composer.addPass(new RenderPass(scene, camera));
+
+// STEP 2: apply GR lensing as a screen-space shader
+const lensPass = new ShaderPass(lensMat);
+composer.addPass(lensPass);
+
+// STEP 3: bloom
+composer.addPass(bloom);
 
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(innerWidth, innerHeight),
