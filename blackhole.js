@@ -5,14 +5,7 @@
 //   MAIN ENGINE — GARGANTUA REALISTIC BLACK HOLE
 // ====================================================================
 
-<script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js"
-    }
-  }
-  </script>
-<script type="module">
+
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js";
 
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/controls/OrbitControls.js";
