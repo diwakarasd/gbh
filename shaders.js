@@ -46,44 +46,64 @@ float fbm(vec2 p){
 // 1) MAX REALISM — GR LENSING SHADER
 // ====================================================================
 export const LensingShader = {
-  uniforms:{
-    tStars:{ value:null },
-    uTime:{ value:0 },
-    uStrength:{ value:1 }
+
+  uniforms: {
+    uTime: { value: 0 },
+    uStrength: { value: 1.0 },
+    tScene: { value: null },   // <-- BH scene
+    tStars: { value: null }    // <-- starfield
   },
 
   vertexShader: `
     varying vec2 vUv;
-    void main(){
+    void main() {
       vUv = uv;
-      gl_Position = vec4(position,1.0);
+      gl_Position = vec4(position, 1.0);
     }
   `,
 
   fragmentShader: `
-    varying vec2 vUv;
-    uniform sampler2D tStars;
     uniform float uTime;
     uniform float uStrength;
+    uniform sampler2D tScene;
+    uniform sampler2D tStars;
 
-    // cinematic gravitational warping
-    vec2 distort(vec2 p){
-      float r = length(p);
-      float bend = uStrength * 0.12 * exp(-r * 6.0);
-      return p - normalize(p) * bend;
+    varying vec2 vUv;
+
+    // --------------------------------------------------------
+    //    SIMPLIFIED INTERSTELLAR-STYLE LENSING FIELD
+    // --------------------------------------------------------
+    vec2 lensDistort(vec2 uv, float strength)
+    {
+      vec2 centered = uv - 0.5;
+      float r = length(centered);
+
+      // Einstein ring radius
+      float re = 0.23;
+
+      // gravitational distortion
+      float d = strength * 0.12 * exp(-abs(r - re) * 20.0);
+
+      vec2 warp = centered * (1.0 - d);
+      return warp + 0.5;
     }
 
-    void main(){
-      vec2 uv = vUv - 0.5;
-      vec2 warped = distort(uv);
-      warped += 0.5;
+    void main()
+    {
+      // Warp coordinates
+      vec2 warped = lensDistort(vUv, uStrength);
 
-      vec3 col = texture2D(tStars, warped).rgb;
+      // Sample both buffers
+      vec3 sceneCol = texture2D(tScene, vUv).rgb;
+      vec3 starCol  = texture2D(tStars, warped).rgb;
 
-      // subtle shimmer
-      col += 0.04 * sin(50.0 * uv.y + uTime * 0.4);
+      // When star warp is strong → stars dominate  
+      // When near center → BH geometry dominates
+      float mixAmt = smoothstep(0.20, 0.45, length(vUv - 0.5));
 
-      gl_FragColor = vec4(col,1.0);
+      vec3 col = mix(sceneCol, starCol, mixAmt);
+
+      gl_FragColor = vec4(col, 1.0);
     }
   `
 };
