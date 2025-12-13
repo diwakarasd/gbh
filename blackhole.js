@@ -223,7 +223,7 @@ export function startBlackHole() {
   // ====================================================================
   // POST-PROCESSING PIPELINE
   // ====================================================================
-  const composer = new EffectComposer(renderer);
+  //const composer = new EffectComposer(renderer);
 
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(innerWidth, innerHeight),
