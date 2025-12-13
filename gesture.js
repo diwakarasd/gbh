@@ -6,6 +6,7 @@
 //   - Palm tilt => Rotate BH
 //   - Spread => Disk pulse / glow increase
 // ======================================================================
+import * as THREE from "three";
 
 export const Gesture = {
 
