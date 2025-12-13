@@ -1,5 +1,4 @@
 
-```js
 // shaders.js
 // ====================================================================
 //  ALL GLSL SHADERS FOR THE GARGANTUA ENGINE
