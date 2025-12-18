@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Solar System + Milky Way + IAU Constellations (Hipparcos)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden}
+#ui{
+  position:fixed;top:14px;left:14px;z-index:10;
+  color:#fff;font-family:system-ui;
+  background:rgba(0,0,0,.45);
+  padding:12px;border-radius:10px;
+}
+button{width:220px;margin-top:6px}
+canvas{display:block}
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <button id="toggleConst">Toggle Constellations</button>
+</div>
+
+<video id="cam" autoplay playsinline style="display:none"></video>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/controls/OrbitControls.js";
+
+/* ================= BASIC ================= */
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+document.body.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x000005);
+
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,8000);
+camera.position.set(0,30,220);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+
+scene.add(new THREE.AmbientLight(0x222233,0.6));
+
+/* ================= ROOT ================= */
+const galaxyRoot=new THREE.Group();
+scene.add(galaxyRoot);
+
+/* ================= HELPERS ================= */
+function raDecToVec3(raDeg, decDeg, r=1200){
+  const ra=THREE.MathUtils.degToRad(raDeg);
+  const dec=THREE.MathUtils.degToRad(decDeg);
+  return new THREE.Vector3(
+    r*Math.cos(dec)*Math.cos(ra),
+    r*Math.sin(dec),
+    r*Math.cos(dec)*Math.sin(ra)
+  );
+}
+
+/* ========================================================= */
+/* ===================== SOLAR SYSTEM ====================== */
+/* ========================================================= */
+
+const solarSystem=new THREE.Group();
+galaxyRoot.add(solarSystem);
+
+const tl=new THREE.TextureLoader();
+const T={
+  sun:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_sun.jpg"),
+  mercury:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_mercury.jpg"),
+  venus:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_venus_surface.jpg"),
+  earth:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_earth_daymap.jpg"),
+  mars:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_mars.jpg"),
+  jupiter:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_jupiter.jpg"),
+  saturn:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_saturn.jpg"),
+  saturnRing:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_saturn_ring_alpha.png"),
+  uranus:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_uranus.jpg"),
+  neptune:tl.load("https://diwakarasd.github.io/galaxy-textures/2k_neptune.jpg")
+};
+
+/* ---- Sun ---- */
+const sun=new THREE.Mesh(
+  new THREE.SphereGeometry(12,48,32),
+  new THREE.MeshBasicMaterial({map:T.sun})
+);
+solarSystem.add(sun);
+solarSystem.add(new THREE.PointLight(0xfff2cc,3,3000));
+
+/* ---- Planets ---- */
+const PLANETS=[
+ {r:0.9,d:20,s:0.018,tex:T.mercury},
+ {r:2.3,d:30,s:0.012,tex:T.venus},
+ {r:2.5,d:40,s:0.010,tex:T.earth},
+ {r:1.4,d:50,s:0.008,tex:T.mars},
+ {r:6.0,d:70,s:0.004,tex:T.jupiter},
+ {r:5.5,d:95,s:0.003,tex:T.saturn,ring:true},
+ {r:3.2,d:115,s:0.002,tex:T.uranus},
+ {r:3.0,d:135,s:0.0015,tex:T.neptune}
+];
+
+const planets=[];
+PLANETS.forEach(p=>{
+  const holder=new THREE.Object3D();
+  solarSystem.add(holder);
+
+  const mesh=new THREE.Mesh(
+    new THREE.SphereGeometry(p.r,48,32),
+    new THREE.MeshBasicMaterial({map:p.tex})
+  );
+  mesh.position.x=p.d;
+  holder.add(mesh);
+
+  if(p.ring){
+    const ring=new THREE.Mesh(
+      new THREE.RingGeometry(p.r*1.2,p.r*2.4,64),
+      new THREE.MeshBasicMaterial({
+        map:T.saturnRing,
+        transparent:true,
+        side:THREE.DoubleSide,
+        depthWrite:false
+      })
+    );
+    ring.rotation.x=Math.PI/2-0.3;
+    holder.add(ring);
+  }
+
+  planets.push({holder,s:p.s,angle:Math.random()*Math.PI*2});
+});
+
+/* ========================================================= */
+/* ===================== HIPPARCOS STARS =================== */
+/* ========================================================= */
+
+let starMap={};
+let starPoints;
+
+async function loadStars(){
+  // Load Hipparcos JS (defines global hipparcos_6_5)
+  await import("https://raw.githubusercontent.com/gmiller123456/hip2000/main/hipparcos_6.5.js");
+
+  const pos=[], col=[];
+  hipparcos_6_5.forEach(s=>{
+    starMap["HIP"+s.HIP]=s;
+
+    const v=raDecToVec3(s.RAdeg, s.DEdeg);
+    pos.push(v.x,v.y,v.z);
+
+    const b=Math.max(0.2,1.6-s.Vmag*0.35);
+    col.push(b,b,b);
+  });
+
+  const g=new THREE.BufferGeometry();
+  g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute("color",new THREE.Float32BufferAttribute(col,3));
+
+  starPoints=new THREE.Points(
+    g,
+    new THREE.PointsMaterial({
+      size:1.3,
+      vertexColors:true,
+      transparent:true,
+      depthWrite:false
+    })
+  );
+  galaxyRoot.add(starPoints);
+}
+
+/* ========================================================= */
+/* =================== CONSTELLATIONS ====================== */
+/* ========================================================= */
+
+let constellationLines;
+
+async function loadConstellations(){
+  const data=await fetch(
+    "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/index.json"
+  ).then(r=>r.json());
+
+  const pts=[];
+  data.constellations.forEach(c=>{
+    c.lines.forEach(([a,b])=>{
+      const s1=starMap[a];
+      const s2=starMap[b];
+      if(!s1||!s2)return;
+
+      const v1=raDecToVec3(s1.RAdeg, s1.DEdeg, 1190);
+      const v2=raDecToVec3(s2.RAdeg, s2.DEdeg, 1190);
+      pts.push(v1.x,v1.y,v1.z,v2.x,v2.y,v2.z);
+    });
+  });
+
+  constellationLines=new THREE.LineSegments(
+    new THREE.BufferGeometry().setAttribute(
+      "position",new THREE.Float32BufferAttribute(pts,3)
+    ),
+    new THREE.LineBasicMaterial({
+      color:0x66ccff,
+      transparent:true,
+      opacity:0.6
+    })
+  );
+  galaxyRoot.add(constellationLines);
+}
+
+toggleConst.onclick=()=>constellationLines.visible=!constellationLines.visible;
+
+/* ================= HAND GESTURES ================= */
+let scale=1,rx=0,ry=0;
+function initHands(){
+  if(!window.Hands)return setTimeout(initHands,150);
+  const hands=new Hands({
+    locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+  });
+  hands.setOptions({maxNumHands:1});
+  hands.onResults(r=>{
+    if(!r.multiHandLandmarks)return;
+    const lm=r.multiHandLandmarks[0];
+    const d=Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y);
+    scale+=((0.7+d*5)-scale)*.12;
+    rx+=(lm[5].y-.5-rx)*.1;
+    ry+=(lm[5].x-.5-ry)*.1;
+  });
+  new Camera(cam,{
+    onFrame:async()=>{try{await hands.send({image:cam});}catch(e){}}
+  }).start();
+}
+initHands();
+
+/* ================= START ================= */
+await loadStars();
+await loadConstellations();
+
+/* ================= ANIMATE ================= */
+function animate(){
+  requestAnimationFrame(animate);
+
+  planets.forEach(p=>{
+    p.angle+=p.s;
+    p.holder.rotation.y=p.angle;
+  });
+
+  galaxyRoot.scale.lerp(new THREE.Vector3(scale,scale,scale),0.08);
+  galaxyRoot.rotation.x+=(rx-galaxyRoot.rotation.x)*.05;
+  galaxyRoot.rotation.y+=(ry-galaxyRoot.rotation.y)*.05;
+
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener("resize",()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</body>
+</html>
