@@ -1,10 +1,11 @@
 // =====================================================================
-//  CINEMATIC BLACK HOLE SHADERS — VISIBILITY FIRST
+//  INTERSTELLAR CINEMATIC BLACK HOLE SHADERS
+//  (Visibility + Cinema > Physics)
 // =====================================================================
 
 
 // =======================================================
-// ACCRETION DISK — CINEMATIC (GUARANTEED VISIBLE)
+// ACCRETION DISK — CINEMATIC, THICK, WARM
 // =======================================================
 export const DiskShader = {
 
@@ -28,20 +29,20 @@ export const DiskShader = {
 
       float r = length(vPos.xz);
 
-      // Wide cinematic falloff
+      // Wide radial falloff
       float glow = smoothstep(600.0, 120.0, r);
 
-      // Subtle animated turbulence
-      glow *= 0.6 + 0.4 * sin(r * 0.02 - uTime * 2.0);
+      // Slow turbulence
+      glow *= 0.7 + 0.3 * sin(r * 0.02 - uTime * 1.5);
 
       // Warm Interstellar palette
       vec3 color = mix(
-        vec3(1.0, 0.35, 0.1),
-        vec3(1.0, 0.9, 0.7),
-        smoothstep(150.0, 400.0, r)
+        vec3(1.0, 0.35, 0.1),   // inner hot
+        vec3(1.0, 0.9, 0.7),    // outer bright
+        smoothstep(160.0, 420.0, r)
       );
 
-      // FORCE brightness
+      // Strong emission for bloom
       gl_FragColor = vec4(color * glow * 4.0, glow);
     }
   `
@@ -49,13 +50,11 @@ export const DiskShader = {
 
 
 // =======================================================
-// PHOTON RING — SCREEN-SPACE HALO (ALWAYS VISIBLE)
+// PHOTON RING — INTERSTELLAR STYLE (VERY IMPORTANT)
 // =======================================================
 export const DiffractionShader = {
 
-  uniforms: {
-    uStrength: { value: 1.0 }
-  },
+  uniforms: {},
 
   vertexShader: `
     varying vec2 vUv;
@@ -67,34 +66,37 @@ export const DiffractionShader = {
 
   fragmentShader: `
     varying vec2 vUv;
-    uniform float uStrength;
 
     void main() {
 
-      // Camera-facing halo (screen-space illusion)
+      // Screen-space radius
       float r = length(vUv - 0.5);
 
-      // Thick photon ring band
+      // THICK photon ring band
       float ring = smoothstep(0.40, 0.45, r)
                  - smoothstep(0.50, 0.55, r);
 
-      // Soft outer glow
-      float glow = exp(-abs(r - 0.46) * 35.0);
+      // Soft halo around the ring
+      float glow = exp(-abs(r - 0.47) * 18.0);
 
-      float intensity = ring * 1.8 + glow * 0.8;
-      float verticalBoost = smoothstep(0.2, 0.8, vUv.y);
-float intensity = (ring * 1.6 + glow) * mix(0.7, 1.4, verticalBoost);
+      // Interstellar vertical bias (top brighter)
+      float verticalBoost = smoothstep(0.2, 0.85, vUv.y);
 
+      float intensity = (ring * 1.6 + glow)
+                        * mix(0.6, 1.5, verticalBoost);
+
+      // Warm white lens color
       vec3 color = vec3(1.0, 0.95, 0.85);
 
+      // Overbright on purpose (cinema)
       gl_FragColor = vec4(color * intensity * 2.8, intensity);
-
     }
   `
 };
 
+
 // =======================================================
-// HALO / DUST — SOFT VOLUMETRIC CHEAT
+// HALO / DUST — SOFT CINEMATIC ATMOSPHERE
 // =======================================================
 export const FogShader = {
 
@@ -117,7 +119,7 @@ export const FogShader = {
 
       float fog = exp(-r * 0.004);
 
-      vec3 color = vec3(0.4, 0.25, 0.15);
+      vec3 color = vec3(0.45, 0.28, 0.18);
 
       gl_FragColor = vec4(color * fog, fog * 0.6);
     }
