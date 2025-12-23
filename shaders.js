@@ -53,7 +53,9 @@ export const DiskShader = {
 // =======================================================
 export const DiffractionShader = {
 
-  uniforms: {},
+  uniforms: {
+    uStrength: { value: 1.0 }
+  },
 
   vertexShader: `
     varying vec2 vUv;
@@ -65,23 +67,28 @@ export const DiffractionShader = {
 
   fragmentShader: `
     varying vec2 vUv;
+    uniform float uStrength;
 
     void main() {
 
-      // Ring centered in UV space
-      float r = abs(length(vUv - 0.5) - 0.5);
+      // Camera-facing halo (screen-space illusion)
+      float r = length(vUv - 0.5);
 
-      // Thick cinematic glow
-      float glow = exp(-r * 25.0);
-      glow += exp(-r * 6.0) * 0.7;
+      // Thick photon ring band
+      float ring = smoothstep(0.42, 0.45, r)
+                 - smoothstep(0.48, 0.51, r);
+
+      // Soft outer glow
+      float glow = exp(-abs(r - 0.46) * 35.0);
+
+      float intensity = ring * 1.8 + glow * 0.8;
 
       vec3 color = vec3(1.0, 0.95, 0.85);
 
-      gl_FragColor = vec4(color * glow * 3.0, glow);
+      gl_FragColor = vec4(color * intensity * 2.5, intensity);
     }
   `
 };
-
 
 // =======================================================
 // HALO / DUST — SOFT VOLUMETRIC CHEAT
