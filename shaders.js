@@ -11,81 +11,56 @@
 export const LensingShader = {
 
   uniforms: {
+    tDiffuse: { value: null },
     uTime: { value: 0 },
-    uStrength: { value: 1.0 },
-    tScene: { value: null },
-    tStars: { value: null }
+    uStrength: { value: 1.2 }
   },
 
   vertexShader: `
     varying vec2 vUv;
-    void main() {
+    void main(){
       vUv = uv;
-      gl_Position = vec4(position, 1.0);
+      gl_Position = vec4(position,1.0);
     }
   `,
 
   fragmentShader: `
-    uniform sampler2D tScene;
-    uniform sampler2D tStars;
+    uniform sampler2D tDiffuse;
     uniform float uTime;
     uniform float uStrength;
-
     varying vec2 vUv;
 
-    // -----------------------------
-    // Random for film grain
-    // -----------------------------
-    float rand(vec2 co) {
-      return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453);
-    }
-
-    void main() {
-
-      // Normalized screen coords
+    void main(){
       vec2 uv = vUv * 2.0 - 1.0;
       float r = length(uv);
 
-      // -----------------------------
-      // GR LENSING (CLAMPED)
-      // -----------------------------
-      float bend = uStrength * 0.12 / (r*r + 0.08);
-      bend *= smoothstep(0.0, 0.35, r);
-      uv += normalize(uv) * bend;
+      // ---------------------------
+      // CINEMATIC GRAVITY SHELL
+      // ---------------------------
+      float shell = smoothstep(0.25, 0.85, r);
+      float bend  = uStrength * 0.22 / (r*r + 0.06);
 
-      vec2 sampleUV = uv * 0.5 + 0.5;
+      // Kerr-style swirl
+      float swirl = 0.25 * sin(r * 8.0 - uTime * 1.5);
+      float angle = atan(uv.y, uv.x) + swirl * shell;
 
-      // Sample buffers
-      vec4 sceneCol = texture2D(tScene, sampleUV);
-      vec4 starCol  = texture2D(tStars, sampleUV);
+      vec2 warped;
+      warped.x = cos(angle) * r;
+      warped.y = sin(angle) * r;
 
-      // Stars only where scene is dark
-      vec4 col = mix(starCol, sceneCol, sceneCol.a + 0.15);
+      warped += normalize(warped) * bend * shell;
 
-      // -----------------------------
-      // FILMIC COLOR GRADING
-      // -----------------------------
-      col.rgb = pow(col.rgb, vec3(0.92));        // lift shadows
-      col.rgb *= vec3(1.05, 0.98, 0.92);         // warm highlights
-      col.rgb = clamp(col.rgb, 0.0, 1.0);
+      vec2 finalUV = warped * 0.5 + 0.5;
 
-      // -----------------------------
-      // VIGNETTE
-      // -----------------------------
-      float vignette = smoothstep(0.9, 0.4, r);
-      col.rgb *= vignette;
+      vec3 col = texture2D(tDiffuse, finalUV).rgb;
 
-      // -----------------------------
-      // FILM GRAIN (VERY SUBTLE)
-      // -----------------------------
-      float grain = rand(vUv + uTime) * 0.04 - 0.02;
-      col.rgb += grain;
+      // vignette
+      col *= smoothstep(1.0, 0.4, r);
 
-      gl_FragColor = vec4(col.rgb, 1.0);
+      gl_FragColor = vec4(col, 1.0);
     }
   `
 };
-
 
 // =====================================================================
 // RELATIVISTIC ACCRETION DISK (DOPPLER + BEAMING)
