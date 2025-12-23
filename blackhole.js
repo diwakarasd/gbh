@@ -56,12 +56,14 @@ export function startBlackHole() {
       fragmentShader: DiffractionShader.fragmentShader,
       transparent: true,
       blending: THREE.AdditiveBlending,
-      depthWrite: false
+      depthWrite: false,
+       depthTest: false 
 
     })
   );
   ring.rotation.x = Math.PI / 2;
   BH.add(ring);
+ring.position.y = 2;
 
   // Disk
   const diskMat = new THREE.ShaderMaterial({
