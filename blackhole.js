@@ -1,5 +1,5 @@
 // ====================================================================
-//  INTERSTELLAR-STYLE GARGANTUA BLACK HOLE (ARCHITECTURALLY CORRECT)
+//  INTERSTELLAR GARGANTUA BLACK HOLE — WORKING PIPELINE
 // ====================================================================
 
 import * as THREE from "three";
@@ -33,8 +33,8 @@ export function startBlackHole() {
   // ------------------------------------------------------------------
   // SCENES
   // ------------------------------------------------------------------
-  const backgroundScene = new THREE.Scene(); // stars only (lensed)
-  const mainScene = new THREE.Scene();       // black hole + disk (NOT lensed)
+  const backgroundScene = new THREE.Scene();
+  const mainScene = new THREE.Scene();
 
   // ------------------------------------------------------------------
   // CAMERA
@@ -47,7 +47,7 @@ export function startBlackHole() {
   controls.enablePan = false;
 
   // ------------------------------------------------------------------
-  // MODE CONFIG
+  // CONFIG
   // ------------------------------------------------------------------
   let cfg = CONFIG.max;
   document.getElementById("mode").addEventListener("change", e => {
@@ -55,13 +55,13 @@ export function startBlackHole() {
   });
 
   // ------------------------------------------------------------------
-  // STARFIELD (BACKGROUND ONLY)
+  // STARFIELD (BACKGROUND)
   // ------------------------------------------------------------------
   const starGeo = new THREE.BufferGeometry();
   const starPos = new Float32Array(cfg.stars * 3);
 
   for (let i = 0; i < cfg.stars; i++) {
-    const r = 1800 + Math.random() * 3500;
+    const r = 2000 + Math.random() * 3500;
     const a = Math.random() * Math.PI * 2;
     const e = (Math.random() - 0.5) * Math.PI;
     starPos[i * 3]     = Math.cos(a) * Math.cos(e) * r;
@@ -73,17 +73,17 @@ export function startBlackHole() {
   backgroundScene.add(
     new THREE.Points(
       starGeo,
-      new THREE.PointsMaterial({ size: 1.4, color: 0xffffff })
+      new THREE.PointsMaterial({ size: 1.5, color: 0xffffff })
     )
   );
 
   // ------------------------------------------------------------------
-  // BLACK HOLE GROUP (NOT LENSED)
+  // BLACK HOLE (MAIN SCENE — NOT LENSED)
   // ------------------------------------------------------------------
   const BH = new THREE.Group();
   mainScene.add(BH);
 
-  // Event horizon (perfect circular shadow)
+  // Event horizon
   BH.add(
     new THREE.Mesh(
       new THREE.SphereGeometry(70, 128, 128),
@@ -91,9 +91,7 @@ export function startBlackHole() {
     )
   );
 
-  // ------------------------------------------------------------------
-  // PHOTON RING (HALO, NOT BENT)
-  // ------------------------------------------------------------------
+  // Photon ring
   const photonRing = new THREE.Mesh(
     new THREE.RingGeometry(76, 84, 512),
     new THREE.ShaderMaterial({
@@ -107,9 +105,7 @@ export function startBlackHole() {
   photonRing.rotation.x = Math.PI / 2;
   BH.add(photonRing);
 
-  // ------------------------------------------------------------------
-  // ACCRETION DISK (FLAT, TILTED ~75°)
-  // ------------------------------------------------------------------
+  // Accretion disk (tilted)
   const diskMat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.clone(DiskShader.uniforms),
     vertexShader: DiskShader.vertexShader,
@@ -119,27 +115,22 @@ export function startBlackHole() {
     side: THREE.DoubleSide
   });
 
-  const diskBase = new THREE.Mesh(
+  const disk = new THREE.Mesh(
     new THREE.RingGeometry(90, 520, cfg.diskSegments),
     diskMat
   );
 
   const tilt = THREE.MathUtils.degToRad(75);
-  diskBase.rotation.x = tilt;
+  disk.rotation.x = tilt;
 
-  // fake thickness (Interstellar cheat)
-  const diskTop = diskBase.clone();
+  const diskTop = disk.clone();
   diskTop.position.y = 6;
-
-  const diskBottom = diskBase.clone();
+  const diskBottom = disk.clone();
   diskBottom.position.y = -6;
 
-  BH.add(diskTop);
-  BH.add(diskBottom);
+  BH.add(diskTop, diskBottom);
 
-  // ------------------------------------------------------------------
-  // HALO / DUST
-  // ------------------------------------------------------------------
+  // Halo
   const halo = new THREE.Mesh(
     new THREE.RingGeometry(140, 680, 256),
     new THREE.ShaderMaterial({
@@ -154,24 +145,22 @@ export function startBlackHole() {
   BH.add(halo);
 
   // ------------------------------------------------------------------
-  // POST — BACKGROUND ONLY GETS LENSED
+  // POST PROCESSING (FIXED)
   // ------------------------------------------------------------------
   const composer = new EffectComposer(renderer);
 
   composer.addPass(new RenderPass(backgroundScene, camera));
 
-  const lensPass = new ShaderPass({
-    uniforms: {
-      tDiffuse: { value: null },
-      uTime: { value: 0 },
-      uStrength: { value: 1.1 }
-    },
+  // ✅ CORRECT ShaderPass creation
+  const lensMaterial = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.clone(LensingShader.uniforms),
     vertexShader: LensingShader.vertexShader,
     fragmentShader: LensingShader.fragmentShader
   });
+
+  const lensPass = new ShaderPass(lensMaterial);
   composer.addPass(lensPass);
 
-  // render main scene on top (no lens)
   composer.addPass(new RenderPass(mainScene, camera));
 
   const bloom = new UnrealBloomPass(
@@ -198,7 +187,7 @@ export function startBlackHole() {
   });
 
   // ------------------------------------------------------------------
-  // ANIMATION LOOP
+  // ANIMATION
   // ------------------------------------------------------------------
   let last = performance.now();
 
@@ -211,7 +200,7 @@ export function startBlackHole() {
     diskBottom.rotation.z += dt * 0.25;
     diskMat.uniforms.uTime.value += dt;
 
-    lensPass.uniforms.uTime.value = t * 0.001;
+    lensMaterial.uniforms.uTime.value = t * 0.001;
 
     Gesture.updateSmooth();
     camera.position.x += (Gesture.smoothX * 40 - camera.position.x) * 0.06;
