@@ -1,5 +1,5 @@
 // ====================================================================
-//  CINEMATIC INTERSTELLAR BLACK HOLE (CHEATED GR)
+//  CINEMATIC GARGANTUA BLACK HOLE (INTERSTELLAR STYLE)
 // ====================================================================
 
 import * as THREE from "three";
@@ -26,7 +26,7 @@ export function startBlackHole() {
   // RENDERER
   // ------------------------------------------------------------------
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   document.body.appendChild(renderer.domElement);
@@ -36,13 +36,8 @@ export function startBlackHole() {
   // ------------------------------------------------------------------
   const scene = new THREE.Scene();
 
-  const camera = new THREE.PerspectiveCamera(
-    50,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    5000
-  );
-  camera.position.set(0, 18, 160);
+  const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 8000);
+  camera.position.set(0, 40, 420);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -60,27 +55,23 @@ export function startBlackHole() {
   });
 
   // ------------------------------------------------------------------
-  // STARFIELD (BACKGROUND)
+  // STARFIELD (BACKGROUND THAT WILL BEND)
   // ------------------------------------------------------------------
-  const starScene = new THREE.Scene();
-  const starCam = new THREE.PerspectiveCamera(60, 1, 1, 4000);
-  starCam.position.z = 1200;
+  const starRT = new THREE.WebGLRenderTarget(2048, 2048);
 
-  const starRT = new THREE.WebGLRenderTarget(
-    cfg.textureSize,
-    cfg.textureSize
-  );
+  const starScene = new THREE.Scene();
+  const starCam = new THREE.PerspectiveCamera(60, 1, 1, 6000);
+  starCam.position.z = 2000;
 
   const starGeo = new THREE.BufferGeometry();
   const starPos = new Float32Array(cfg.stars * 3);
 
   for (let i = 0; i < cfg.stars; i++) {
-    const r = 600 + Math.random() * 1400;
+    const r = 1200 + Math.random() * 2600;
     const a = Math.random() * Math.PI * 2;
     const e = (Math.random() - 0.5) * Math.PI;
-
     starPos[i * 3]     = Math.cos(a) * Math.cos(e) * r;
-    starPos[i * 3 + 1] = Math.sin(e) * r * 0.6;
+    starPos[i * 3 + 1] = Math.sin(e) * r;
     starPos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r;
   }
 
@@ -88,9 +79,19 @@ export function startBlackHole() {
   starScene.add(
     new THREE.Points(
       starGeo,
-      new THREE.PointsMaterial({ size: 1.2, color: 0xffffff })
+      new THREE.PointsMaterial({ size: 1.5, color: 0xffffff })
     )
   );
+
+  // Star sphere (so lensing has something to warp)
+  const starSphere = new THREE.Mesh(
+    new THREE.SphereGeometry(3500, 64, 64),
+    new THREE.MeshBasicMaterial({
+      side: THREE.BackSide,
+      map: starRT.texture
+    })
+  );
+  scene.add(starSphere);
 
   // ------------------------------------------------------------------
   // BLACK HOLE GROUP
@@ -98,19 +99,19 @@ export function startBlackHole() {
   const BH = new THREE.Group();
   scene.add(BH);
 
-  // Event Horizon (pure black)
+  // Event Horizon
   BH.add(
     new THREE.Mesh(
-      new THREE.SphereGeometry(22, 128, 128),
+      new THREE.SphereGeometry(45, 128, 128),
       new THREE.MeshBasicMaterial({ color: 0x000000 })
     )
   );
 
   // ------------------------------------------------------------------
-  // PHOTON RING
+  // PHOTON RING (THICK + BRIGHT)
   // ------------------------------------------------------------------
   const photonRing = new THREE.Mesh(
-    new THREE.RingGeometry(20.8, 22.2, 256),
+    new THREE.RingGeometry(50, 58, 512),
     new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(DiffractionShader.uniforms),
       vertexShader: DiffractionShader.vertexShader,
@@ -123,7 +124,7 @@ export function startBlackHole() {
   BH.add(photonRing);
 
   // ------------------------------------------------------------------
-  // ACCRETION DISK
+  // ACCRETION DISK (BIG + THICK)
   // ------------------------------------------------------------------
   const diskMat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.clone(DiskShader.uniforms),
@@ -134,21 +135,29 @@ export function startBlackHole() {
     side: THREE.DoubleSide
   });
 
-  const disk = new THREE.Mesh(
-    new THREE.RingGeometry(26, 130, cfg.diskSegments),
+  const diskBase = new THREE.Mesh(
+    new THREE.RingGeometry(60, 380, cfg.diskSegments),
     diskMat
   );
-  disk.rotation.x = Math.PI / 2;
-  BH.add(disk);
+  diskBase.rotation.x = Math.PI / 2;
+
+  // fake thickness (top + bottom)
+  const diskTop = diskBase.clone();
+  diskTop.position.y = 4;
+  const diskBottom = diskBase.clone();
+  diskBottom.position.y = -4;
+
+  BH.add(diskTop);
+  BH.add(diskBottom);
 
   // ------------------------------------------------------------------
-  // RELATIVISTIC JETS
+  // JETS (OPTIONAL)
   // ------------------------------------------------------------------
   if (cfg.jetsEnabled) {
     const jets = new THREE.Group();
     [-1, 1].forEach(s => {
       const jet = new THREE.Mesh(
-        new THREE.CylinderGeometry(0, 10, 200, 32, 1, true),
+        new THREE.CylinderGeometry(0, 12, 260, 32, 1, true),
         new THREE.ShaderMaterial({
           uniforms: THREE.UniformsUtils.clone(JetShader.uniforms),
           vertexShader: JetShader.vertexShader,
@@ -158,18 +167,18 @@ export function startBlackHole() {
         })
       );
       jet.rotation.x = Math.PI / 2;
-      jet.position.y = s * 110;
+      jet.position.y = s * 160;
       jets.add(jet);
     });
     BH.add(jets);
   }
 
   // ------------------------------------------------------------------
-  // FOG / HALO
+  // HALO / FOG
   // ------------------------------------------------------------------
   if (cfg.fogEnabled) {
-    const fog = new THREE.Mesh(
-      new THREE.RingGeometry(40, 160, 200),
+    const halo = new THREE.Mesh(
+      new THREE.RingGeometry(120, 520, 256),
       new THREE.ShaderMaterial({
         uniforms: THREE.UniformsUtils.clone(FogShader.uniforms),
         vertexShader: FogShader.vertexShader,
@@ -178,20 +187,23 @@ export function startBlackHole() {
         blending: THREE.AdditiveBlending
       })
     );
-    fog.rotation.x = Math.PI / 2;
-    BH.add(fog);
+    halo.rotation.x = Math.PI / 2;
+    BH.add(halo);
   }
 
   // ------------------------------------------------------------------
-  // POST PROCESSING
+  // POST PROCESSING (CRITICAL ORDER)
   // ------------------------------------------------------------------
   const composer = new EffectComposer(renderer);
 
-  const renderPass = new RenderPass(scene, camera);
-  composer.addPass(renderPass);
+  composer.addPass(new RenderPass(scene, camera));
 
   const lensPass = new ShaderPass({
-    uniforms: THREE.UniformsUtils.clone(LensingShader.uniforms),
+    uniforms: {
+      tDiffuse: { value: null },
+      uTime: { value: 0 },
+      uStrength: { value: 1.4 }
+    },
     vertexShader: LensingShader.vertexShader,
     fragmentShader: LensingShader.fragmentShader
   });
@@ -199,14 +211,14 @@ export function startBlackHole() {
 
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(innerWidth, innerHeight),
-    cfg.bloomStrength,
-    cfg.bloomRadius,
-    cfg.bloomThreshold
+    2.2,
+    0.65,
+    0.15
   );
   composer.addPass(bloom);
 
   // ------------------------------------------------------------------
-  // GESTURES (CAMERA ONLY)
+  // GESTURES
   // ------------------------------------------------------------------
   Gesture.init(document.getElementById("gestureCam"));
 
@@ -230,34 +242,25 @@ export function startBlackHole() {
     const dt = (t - last) * 0.001;
     last = t;
 
-    // render stars to texture
+    // render stars
     renderer.setRenderTarget(starRT);
     renderer.render(starScene, starCam);
     renderer.setRenderTarget(null);
 
-    lensPass.uniforms.tDiffuse.value = null;
-    lensPass.uniforms.uTime.value = t * 0.001;
-
     // disk motion
-    disk.rotation.z += dt * 0.35;
+    diskTop.rotation.z += dt * 0.35;
+    diskBottom.rotation.z += dt * 0.35;
     diskMat.uniforms.uTime.value += dt;
 
-    // gesture smoothing
-    Gesture.updateSmooth();
-    camera.position.x += (Gesture.smoothX * 25 - camera.position.x) * 0.08;
-    camera.position.y += (18 + Gesture.smoothY * 10 - camera.position.y) * 0.08;
-    camera.position.z += (160 - Gesture.smoothScale * 45 - camera.position.z) * 0.06;
-    camera.lookAt(0, 0, 0);
+    // lens time
+    lensPass.uniforms.uTime.value = t * 0.001;
 
-    // fake gravity shell distortion (objects)
-    scene.traverse(obj => {
-      if (!obj.isMesh || obj.parent === BH) return;
-      const d = obj.position.length();
-      if (d < 220) {
-        const pull = 1.0 - d / 220.0;
-        obj.position.multiplyScalar(1.0 - pull * 0.002);
-      }
-    });
+    // gestures
+    Gesture.updateSmooth();
+    camera.position.x += (Gesture.smoothX * 30 - camera.position.x) * 0.08;
+    camera.position.y += (40 + Gesture.smoothY * 14 - camera.position.y) * 0.08;
+    camera.position.z += (420 - Gesture.smoothScale * 90 - camera.position.z) * 0.05;
+    camera.lookAt(0, 0, 0);
 
     controls.update();
     composer.render();
