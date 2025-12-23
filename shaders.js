@@ -74,7 +74,7 @@ export const DiskShader = {
 
   vertexShader: `
     varying vec3 vPos;
-    void main() {
+    void main(){
       vPos = position;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
     }
@@ -85,36 +85,27 @@ export const DiskShader = {
     uniform float uTime;
     uniform float uIntensity;
 
-    // Temperature-based spectrum
-    vec3 spectrum(float t) {
-      return mix(
-        vec3(1.0, 0.35, 0.1),   // red-orange
-        vec3(1.0, 1.0, 1.0),    // white-hot
-        t
-      );
-    }
-
-    void main() {
+    void main(){
 
       float r = length(vPos.xz);
+      float height = vPos.y * 0.04;
 
-      // Orbital velocity (approx GR)
-      float speed = sqrt(1.0 / max(r, 1.0));
+      // Doppler illusion
+      float doppler = smoothstep(-1.0, 1.0, vPos.x);
 
-      // Doppler beaming (tightened)
-      float doppler = pow(clamp(speed, 0.0, 1.0), 2.2);
+      // Temperature gradient
+      vec3 hot = vec3(1.0, 0.9, 0.7);
+      vec3 cold = vec3(1.0, 0.3, 0.1);
+      vec3 col = mix(cold, hot, doppler);
 
-      // Radial brightness falloff
-      float brightness = exp(-abs(r - 30.0) * 0.15) * uIntensity;
+      // Falloff
+      float glow = exp(-abs(r - 40.0) * 0.08);
+      glow *= exp(-abs(height));
 
-      vec3 col = spectrum(doppler) * brightness;
-
-      gl_FragColor = vec4(col, brightness);
+      gl_FragColor = vec4(col * glow * uIntensity, glow);
     }
   `
 };
-
-
 // =====================================================================
 // PHOTON RING (EINSTEIN RING)
 // =====================================================================
@@ -126,7 +117,7 @@ export const DiffractionShader = {
 
   vertexShader: `
     varying vec2 vUv;
-    void main() {
+    void main(){
       vUv = uv;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
     }
@@ -134,14 +125,16 @@ export const DiffractionShader = {
 
   fragmentShader: `
     varying vec2 vUv;
-    void main() {
-      float r = abs(length(vUv - 0.5) - 0.23);
-      float glow = exp(-r * 120.0);
-      gl_FragColor = vec4(vec3(glow), glow);
+
+    void main(){
+      float r = abs(length(vUv - 0.5) - 0.22);
+      float glow = exp(-r * 80.0);
+      glow += exp(-r * 20.0) * 0.4;
+
+      gl_FragColor = vec4(vec3(1.0, 0.95, 0.85) * glow, glow);
     }
   `
 };
-
 
 // =====================================================================
 // RELATIVISTIC JETS
