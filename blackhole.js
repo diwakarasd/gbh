@@ -55,7 +55,9 @@ export function startBlackHole() {
       vertexShader: DiffractionShader.vertexShader,
       fragmentShader: DiffractionShader.fragmentShader,
       transparent: true,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+
     })
   );
   ring.rotation.x = Math.PI / 2;
@@ -68,7 +70,9 @@ export function startBlackHole() {
     fragmentShader: DiskShader.fragmentShader,
     transparent: true,
     blending: THREE.AdditiveBlending,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+      depthWrite: false
+
   });
 
   const disk = new THREE.Mesh(
@@ -93,7 +97,9 @@ export function startBlackHole() {
       vertexShader: FogShader.vertexShader,
       fragmentShader: FogShader.fragmentShader,
       transparent: true,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
+        depthWrite: false
+
     })
   );
   halo.rotation.x = Math.PI / 2;
