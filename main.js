@@ -5,47 +5,63 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
 
-// Scene & camera
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+const camera = new THREE.Camera();
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-camera.position.set(0, 0, 5);
+// ---------- SAFE FRAGMENT SHADER ----------
+const fragmentShader = `
+precision mediump float;
 
-// Simple geometry (NO SHADERS)
-const geometry = new THREE.CircleGeometry(1.2, 128);
-const material = new THREE.MeshBasicMaterial({
-  color: 0x000000
+uniform vec2 iResolution;
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / iResolution.xy;
+  uv = uv * 2.0 - 1.0;
+  uv.x *= iResolution.x / iResolution.y;
+
+  float r = length(uv);
+
+  // black hole shadow
+  float shadow = smoothstep(0.25, 0.24, r);
+
+  // photon ring
+  float ring = smoothstep(0.28, 0.26, r)
+             - smoothstep(0.33, 0.31, r);
+
+  vec3 col = vec3(0.0);
+  col += ring * vec3(1.0, 0.9, 0.7);
+  col *= shadow;
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+const material = new THREE.ShaderMaterial({
+  uniforms: {
+    iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+  },
+  vertexShader: `
+    void main() {
+      gl_Position = vec4(position, 1.0);
+    }
+  `,
+  fragmentShader
 });
-const blackHole = new THREE.Mesh(geometry, material);
-scene.add(blackHole);
 
-// Glowing ring (still NO shaders)
-const ringGeometry = new THREE.RingGeometry(1.25, 1.35, 128);
-const ringMaterial = new THREE.MeshBasicMaterial({
-  color: 0xffffff,
-  transparent: true,
-  opacity: 0.8
-});
-const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-scene.add(ring);
+const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+scene.add(quad);
 
-// Resize
+// resize
 window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  material.uniforms.iResolution.value.set(
+    window.innerWidth,
+    window.innerHeight
+  );
 });
 
-// Render loop
 function animate() {
   requestAnimationFrame(animate);
-  ring.rotation.z += 0.002;
   renderer.render(scene, camera);
 }
 animate();
