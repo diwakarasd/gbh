@@ -15,7 +15,8 @@ mat2 rot(float a){
 // sparse starfield (very dark)
 vec3 stars(vec3 dir){
   float n = fract(sin(dot(dir.xy, vec2(12.9898,78.233))) * 43758.5453);
-  return vec3(step(0.9998, n)) * 0.6;
+  return vec3(0.0);
+
 }
 
 void main(){
