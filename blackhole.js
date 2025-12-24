@@ -13,7 +13,7 @@ export function startBlackHole() {
   scene.background = new THREE.Color(0x000000);
 
   const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 10000);
-  camera.position.set(0, 60, 520);
+  camera.position.set(0, 80, 520);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
