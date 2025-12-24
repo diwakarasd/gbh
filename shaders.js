@@ -86,10 +86,15 @@ export const DiffractionShader = {
                         * mix(0.6, 1.5, verticalBoost);
 
       // Warm white lens color
-      vec3 color = vec3(1.0, 0.95, 0.85);
+      vec3 color = mix(
+  vec3(1.0, 0.95, 0.9),
+  vec3(1.0, 0.85, 0.6),
+  verticalBoost
+);
+
 
       // Overbright on purpose (cinema)
-      gl_FragColor = vec4(color * intensity * 2.8, intensity);
+      gl_FragColor = vec4(color * intensity * 3.2, intensity);
     }
   `
 };
