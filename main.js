@@ -24,7 +24,6 @@ void main() {
   uv.x *= iResolution.x / iResolution.y;
 
   float r = length(uv);
-
   vec3 col = vec3(0.0);
 
   // -----------------------------
@@ -33,21 +32,20 @@ void main() {
   float shadow = smoothstep(0.32, 0.30, r);
 
   // -----------------------------
-  // MAIN PHOTON RING (HORIZONTAL)
+  // MAIN PHOTON RING
   // -----------------------------
   float ring = smoothstep(0.36, 0.34, r)
              - smoothstep(0.42, 0.40, r);
 
   vec3 ringColor = vec3(1.0, 0.9, 0.7);
-  col += ring * ringColor * 1.5;
+  col += ring * ringColor * 1.4;
 
   // -----------------------------
-  // SPACE WARP (FOR GLOW + LENS)
+  // SAFE SPACE WARP (NO NORMALIZE)
   // -----------------------------
   vec2 warpUv = uv;
-  float warp = 0.14 / (r + 0.45);
-  warp *= smoothstep(1.2, 0.2, r);
-  warpUv += normalize(uv) * warp;
+  float warpStrength = 0.12 * smoothstep(1.2, 0.3, r);
+  warpUv *= 1.0 + warpStrength / (r + 0.45);
 
   float rw = length(warpUv);
 
@@ -57,22 +55,22 @@ void main() {
   float v = abs(warpUv.y);
   float h = abs(warpUv.x);
 
-  // squash horizontally, stretch vertically
-  float verticalR = length(vec2(h * 0.55, v * 1.35));
+  // ellipse controls (tuned for Interstellar look)
+  float verticalR = length(vec2(h * 0.6, v * 1.45));
 
-  float vRing = smoothstep(0.34, 0.32, verticalR)
-              - smoothstep(0.40, 0.38, verticalR);
+  float vRing = smoothstep(0.36, 0.34, verticalR)
+              - smoothstep(0.42, 0.40, verticalR);
 
   // fade toward center horizontally
-  vRing *= smoothstep(0.25, 0.05, h);
+  vRing *= smoothstep(0.30, 0.08, h);
 
-  col += vRing * ringColor * 1.2;
+  col += vRing * ringColor * 1.3;
 
   // -----------------------------
-  // GR GLOW
+  // SOFT GR GLOW
   // -----------------------------
-  float glow = exp(-abs(rw - 0.38) * 14.0);
-  col += glow * ringColor * 0.45;
+  float glow = exp(-abs(rw - 0.38) * 12.0);
+  col += glow * ringColor * 0.4;
 
   // apply shadow last
   col *= shadow;
