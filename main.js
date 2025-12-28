@@ -16,38 +16,48 @@ uniform vec2 iResolution;
 
 void main() {
 
-  // Normalized coordinates (-1 to 1)
+  // Normalized screen coords (-1 to 1)
   vec2 uv = gl_FragCoord.xy / iResolution.xy;
   uv = uv * 2.0 - 1.0;
   uv.x *= iResolution.x / iResolution.y;
 
   float r = length(uv);
 
+  // -----------------------------
+  // SPACE WARP (GR CHEAT)
+  // -----------------------------
+  float warp = 0.18 / (r + 0.35);
+  warp *= smoothstep(1.2, 0.2, r);
+  uv += normalize(uv) * warp;
+
+  float rw = length(uv);
+
   vec3 col = vec3(0.0);
 
   // -----------------------------
   // BLACK HOLE SHADOW
   // -----------------------------
-  float shadow = smoothstep(0.35, 0.33, r);
+  float shadow = smoothstep(0.32, 0.30, rw);
   col *= shadow;
 
   // -----------------------------
-  // PHOTON RING (THICK + VISIBLE)
+  // PHOTON RING (NOW BENT)
   // -----------------------------
-  float ring = smoothstep(0.38, 0.36, r)
-             - smoothstep(0.45, 0.43, r);
+  float ring = smoothstep(0.36, 0.34, rw)
+             - smoothstep(0.42, 0.40, rw);
 
   vec3 ringColor = vec3(1.0, 0.9, 0.7);
-  col += ring * ringColor * 1.5;
+  col += ring * ringColor * 1.6;
 
   // -----------------------------
-  // SOFT GLOW AROUND RING
+  // SOFT GR GLOW
   // -----------------------------
-  float glow = exp(-abs(r - 0.40) * 12.0);
-  col += glow * ringColor * 0.4;
+  float glow = exp(-abs(rw - 0.38) * 14.0);
+  col += glow * ringColor * 0.5;
 
   gl_FragColor = vec4(col, 1.0);
-}`
+}
+`
 ;
 // ======================================================
 
