@@ -11,11 +11,12 @@ const camera = new THREE.Camera();
 // ===================== DEBUG SHADER =====================
 const fragmentShader = `
 precision mediump float;
+
 uniform vec2 iResolution;
 
 void main() {
 
-  // normalized coordinates (-1 to 1)
+  // Normalized coordinates (-1 to 1)
   vec2 uv = gl_FragCoord.xy / iResolution.xy;
   uv = uv * 2.0 - 1.0;
   uv.x *= iResolution.x / iResolution.y;
@@ -24,19 +25,30 @@ void main() {
 
   vec3 col = vec3(0.0);
 
-  // BIG RED CIRCLE (impossible to miss)
-  if (r < 0.6) {
-    col = vec3(0.4, 0.0, 0.0);
-  }
+  // -----------------------------
+  // BLACK HOLE SHADOW
+  // -----------------------------
+  float shadow = smoothstep(0.35, 0.33, r);
+  col *= shadow;
 
-  // THICK WHITE RING
-  if (r > 0.6 && r < 0.75) {
-    col = vec3(1.0, 1.0, 1.0);
-  }
+  // -----------------------------
+  // PHOTON RING (THICK + VISIBLE)
+  // -----------------------------
+  float ring = smoothstep(0.38, 0.36, r)
+             - smoothstep(0.45, 0.43, r);
+
+  vec3 ringColor = vec3(1.0, 0.9, 0.7);
+  col += ring * ringColor * 1.5;
+
+  // -----------------------------
+  // SOFT GLOW AROUND RING
+  // -----------------------------
+  float glow = exp(-abs(r - 0.40) * 12.0);
+  col += glow * ringColor * 0.4;
 
   gl_FragColor = vec4(col, 1.0);
 }
-`;
+;
 // ======================================================
 
 const material = new THREE.ShaderMaterial({
