@@ -1,22 +1,149 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Three.js Baseline Test</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background: #000;
-    }
-    canvas {
-      display: block;
-    }
-  </style>
+<meta charset="utf-8">
+<title>Pure Ray-Bent Black Hole</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+html,body { margin:0; overflow:hidden; background:black; }
+canvas { display:block; }
+</style>
 </head>
 <body>
-<script type="module" src="./main.js"></script>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.164/build/three.module.js";
+
+/* =========================
+   BASIC SETUP
+========================= */
+const renderer = new THREE.WebGLRenderer({ antialias:false });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.Camera();
+
+/* =========================
+   MOUSE ROTATION
+========================= */
+let yaw = 0, pitch = 0, down = false;
+addEventListener("mousedown",()=>down=true);
+addEventListener("mouseup",()=>down=false);
+addEventListener("mousemove",e=>{
+  if(!down) return;
+  yaw   += e.movementX * 0.002;
+  pitch += e.movementY * 0.002;
+  pitch = Math.max(-1.2, Math.min(1.2, pitch));
+});
+
+/* =========================
+   PURE RAY SHADER
+========================= */
+const material = new THREE.ShaderMaterial({
+  uniforms:{
+    iResolution:{ value:new THREE.Vector2(innerWidth, innerHeight) },
+    camRot:{ value:new THREE.Vector2() }
+  },
+  vertexShader:`void main(){ gl_Position=vec4(position,1.0); }`,
+  fragmentShader:`
+    precision highp float;
+
+    uniform vec2 iResolution;
+    uniform vec2 camRot;
+
+    #define STEPS 110
+    #define RS 1.0
+    #define DISK_INNER 2.2
+    #define DISK_OUTER 7.0
+
+    mat2 rot(float a){
+      float s=sin(a), c=cos(a);
+      return mat2(c,-s,s,c);
+    }
+
+    float hash(vec2 p){
+      return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);
+    }
+
+    vec3 starfield(vec3 d){
+      float n = hash(d.xy*80.0);
+      return vec3(step(0.997,n));
+    }
+
+    void main(){
+      vec2 uv = (gl_FragCoord.xy - 0.5*iResolution.xy) / iResolution.y;
+
+      vec3 ro = vec3(0.0, 0.0, 6.0);
+      vec3 rd = normalize(vec3(uv, -1.3));
+
+      rd.xz *= rot(camRot.x);
+      rd.yz *= rot(camRot.y);
+
+      vec3 col = vec3(0.0);
+      float t = 0.0;
+
+      for(int i=0;i<STEPS;i++){
+        vec3 p = ro + rd*t;
+        float r = length(p);
+
+        /* Event horizon */
+        if(r < RS){
+          col = vec3(0.0);
+          break;
+        }
+
+        /* Accretion disk */
+        if(abs(p.y) < 0.12 && r > DISK_INNER && r < DISK_OUTER){
+          float heat = smoothstep(DISK_OUTER, DISK_INNER, r);
+          float doppler = 1.0 + p.x*0.7;
+          col = vec3(1.0,0.85,0.6) * heat * doppler * 2.4;
+          break;
+        }
+
+        /* Schwarzschild bending */
+        float bend = 0.025 / (r*r);
+        rd = normalize(rd - bend*p);
+
+        t += 0.05;
+      }
+
+      /* Photon sphere (always enforced) */
+      float pr = length(ro + rd*t);
+      float ring = smoothstep(1.25,1.05,pr);
+      col += ring * vec3(1.3,1.2,1.1);
+
+      /* Background stars (part of ray) */
+      if(col == vec3(0.0)){
+        col = starfield(rd);
+      }
+
+      gl_FragColor = vec4(clamp(col,0.0,1.0),1.0);
+    }
+  `
+});
+
+scene.add(new THREE.Mesh(
+  new THREE.PlaneGeometry(2,2),
+  material
+));
+
+/* =========================
+   LOOP
+========================= */
+function animate(){
+  requestAnimationFrame(animate);
+  material.uniforms.camRot.value.set(yaw,pitch);
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener("resize",()=>{
+  renderer.setSize(innerWidth, innerHeight);
+  material.uniforms.iResolution.value.set(innerWidth, innerHeight);
+});
+</script>
+
 </body>
 </html>
